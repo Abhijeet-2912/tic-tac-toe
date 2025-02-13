@@ -1,253 +1,140 @@
 import 'package:flutter/material.dart';
 
 void main() {
-  runApp(TicTacToeApp());
+  runApp(const TicTacToeApp());
 }
 
 class TicTacToeApp extends StatelessWidget {
+  const TicTacToeApp({super.key});
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Tic Tac Toe',
       theme: ThemeData(
         primarySwatch: Colors.blue,
+        brightness: Brightness.light,
       ),
-      home: TicTacToeGame(),
+      home: const GameScreen(),
     );
   }
 }
 
-class TicTacToeGame extends StatefulWidget {
+class GameScreen extends StatefulWidget {
+  const GameScreen({super.key});
+
   @override
-  _TicTacToeGameState createState() => _TicTacToeGameState();
+  State<GameScreen> createState() => _GameScreenState();
 }
 
-class _TicTacToeGameState extends State<TicTacToeGame> {
-  List<List<String>> board = List.generate(3, (_) => List.filled(3, ''));
-  String currentPlayer = 'X';
-  bool gameOver = false;
-  List<List<int>> winningLine = []; // Stores the winning line coordinates
-  int xWins = 0; // Track wins for player X
-  int oWins = 0; // Track wins for player O
+class _GameScreenState extends State<GameScreen> {
+  // Initialize the game board
+  final List<String> _board = List.filled(9, '');
+  bool _isXTurn = true;
+  String _gameStatus = '';
 
-  void _resetGame() {
-    setState(() {
-      board = List.generate(3, (_) => List.filled(3, ''));
-      currentPlayer = 'X';
-      gameOver = false;
-      winningLine = [];
-    });
-  }
-
-  void _makeMove(int row, int col) {
-    if (board[row][col] == '' && !gameOver) {
+  void _handleTap(int index) {
+    if (_board[index].isEmpty && _gameStatus.isEmpty) {
       setState(() {
-        board[row][col] = currentPlayer;
-        if (_checkWin(row, col)) {
-          gameOver = true;
-          if (currentPlayer == 'X') {
-            xWins++;
-          } else {
-            oWins++;
-          }
-          _showWinDialog();
-        } else if (_checkDraw()) {
-          gameOver = true;
-          _showDrawDialog();
-        } else {
-          currentPlayer = currentPlayer == 'X' ? 'O' : 'X';
-        }
+        _board[index] = _isXTurn ? 'X' : 'O';
+        _isXTurn = !_isXTurn;
+        _checkWinner();
       });
     }
   }
 
-  bool _checkWin(int row, int col) {
-    // Check row
-    if (board[row][0] == currentPlayer &&
-        board[row][1] == currentPlayer &&
-        board[row][2] == currentPlayer) {
-      winningLine = [
-        [row, 0],
-        [row, 1],
-        [row, 2]
-      ];
-      return true;
-    }
+  void _checkWinner() {
+    // Define winning combinations
+    const winningCombinations = [
+      [0, 1, 2], [3, 4, 5], [6, 7, 8], // Rows
+      [0, 3, 6], [1, 4, 7], [2, 5, 8], // Columns
+      [0, 4, 8], [2, 4, 6] // Diagonals
+    ];
 
-    // Check column
-    if (board[0][col] == currentPlayer &&
-        board[1][col] == currentPlayer &&
-        board[2][col] == currentPlayer) {
-      winningLine = [
-        [0, col],
-        [1, col],
-        [2, col]
-      ];
-      return true;
-    }
-
-    // Check diagonals
-    if (row == col &&
-        board[0][0] == currentPlayer &&
-        board[1][1] == currentPlayer &&
-        board[2][2] == currentPlayer) {
-      winningLine = [
-        [0, 0],
-        [1, 1],
-        [2, 2]
-      ];
-      return true;
-    }
-
-    if (row + col == 2 &&
-        board[0][2] == currentPlayer &&
-        board[1][1] == currentPlayer &&
-        board[2][0] == currentPlayer) {
-      winningLine = [
-        [0, 2],
-        [1, 1],
-        [2, 0]
-      ];
-      return true;
-    }
-
-    return false;
-  }
-
-  bool _checkDraw() {
-    for (int i = 0; i < 3; i++) {
-      for (int j = 0; j < 3; j++) {
-        if (board[i][j] == '') {
-          return false;
-        }
-      }
-    }
-    return true;
-  }
-
-  void _showWinDialog() {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text('Game Over'),
-          content: Text('Player $currentPlayer wins!'),
-          actions: <Widget>[
-            TextButton(
-              child: Text('Play Again'),
-              onPressed: () {
-                Navigator.of(context).pop();
-                _resetGame();
-              },
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  void _showDrawDialog() {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text('Game Over'),
-          content: Text('It\'s a draw!'),
-          actions: <Widget>[
-            TextButton(
-              child: Text('Play Again'),
-              onPressed: () {
-                Navigator.of(context).pop();
-                _resetGame();
-              },
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  Widget _buildCell(int row, int col) {
-    bool isWinningCell = false;
-    for (var cell in winningLine) {
-      if (cell[0] == row && cell[1] == col) {
-        isWinningCell = true;
-        break;
+    for (final combination in winningCombinations) {
+      if (_board[combination[0]].isNotEmpty &&
+          _board[combination[0]] == _board[combination[1]] &&
+          _board[combination[0]] == _board[combination[2]]) {
+        setState(() {
+          _gameStatus = '${_board[combination[0]]} Wins!';
+        });
+        return;
       }
     }
 
-    return GestureDetector(
-      onTap: () => _makeMove(row, col),
-      child: Container(
-        width: 100,
-        height: 100,
-        decoration: BoxDecoration(
-          border: Border.all(color: Colors.black),
-        ),
-        child: Stack(
-          children: [
-            Center(
-              child: Text(
-                board[row][col],
-                style: TextStyle(fontSize: 40),
-              ),
-            ),
-            if (isWinningCell)
-              Positioned.fill(
-                child: CustomPaint(
-                  painter: StrikeThroughPainter(),
-                ),
-              ),
-          ],
-        ),
-      ),
-    );
+    // Check for draw
+    if (!_board.contains('')) {
+      setState(() {
+        _gameStatus = 'Draw!';
+      });
+    }
+  }
+
+  void _resetGame() {
+    setState(() {
+      _board.fillRange(0, 9, '');
+      _isXTurn = true;
+      _gameStatus = '';
+    });
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Tic Tac Toe'),
+        title: const Text('Tic Tac Toe'),
       ),
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
+          children: [
             Text(
-              'Player X Wins: $xWins   Player O Wins: $oWins',
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              _gameStatus.isEmpty
+                  ? '${_isXTurn ? "X" : "O"}\'s Turn'
+                  : _gameStatus,
+              style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
             ),
-            SizedBox(height: 20),
-            for (int i = 0; i < 3; i++)
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: <Widget>[
-                  for (int j = 0; j < 3; j++) _buildCell(i, j),
-                ],
+            const SizedBox(height: 20),
+            Container(
+              constraints: const BoxConstraints(maxWidth: 300),
+              child: GridView.builder(
+                shrinkWrap: true,
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 3,
+                  crossAxisSpacing: 8,
+                  mainAxisSpacing: 8,
+                ),
+                itemCount: 9,
+                itemBuilder: (context, index) {
+                  return GestureDetector(
+                    onTap: () => _handleTap(index),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: Colors.grey[200],
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Center(
+                        child: Text(
+                          _board[index],
+                          style: const TextStyle(
+                            fontSize: 40,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ),
+                  );
+                },
               ),
+            ),
+            const SizedBox(height: 20),
+            ElevatedButton(
+              onPressed: _resetGame,
+              child: const Text('Reset Game'),
+            ),
           ],
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _resetGame,
-        child: Icon(Icons.refresh),
-      ),
     );
   }
-}
-
-class StrikeThroughPainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = Colors.red
-      ..strokeWidth = 4;
-
-    canvas.drawLine(Offset(0, size.height / 2),
-        Offset(size.width, size.height / 2), paint);
-  }
-
-  @override
-  bool shouldRepaint(CustomPainter oldDelegate) => false;
 }
